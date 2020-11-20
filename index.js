@@ -1,11 +1,12 @@
 import http from 'http';
+import crypto from 'crypto';
 
 void async function () {
   // Switch between `makeEchoOptions` (0, OK) and `makeNodeOptions` (1, WIP)
   const options = await [makeEchoOptions, makeNodeOptions][1]();
 
   // Throw if we receive any other response but an upgrade (handled below)
-  const response = http.request(options, async response => {
+  const response = http.get(options, async response => {
     const chunks = [];
     for await (const chunk of response) {
       chunks.push(chunk);
@@ -37,8 +38,8 @@ void async function () {
     stream.on('lookup', () => console.log('lookup'));
     stream.on('timeout', () => console.log('timeout'));
 
-    console.log('OUT: TEST');
-    stream.emit('data', 'TEST');
+    console.log('OUT: {}');
+    stream.emit('data', '{}');
   });
 
   response.on('abort', () => console.log('abort'));
@@ -91,14 +92,13 @@ async function makeNodeOptions() {
   }
 
   return {
-    hostname: 'localhost',
+    host: 'localhost',
     port: process.pid,
-    path: datum.id,
+    path: '/' + datum.id,
     headers: {
       Connection: 'Upgrade',
       Upgrade: 'websocket',
-      Host: 'localhost',
-      Origin: 'http://localhost:' + process.debugPort,
+      'Sec-WebSocket-Key': crypto.randomBytes(16).toString('base64')
     },
   };
 }
