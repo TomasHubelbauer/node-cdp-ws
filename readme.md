@@ -7,6 +7,4 @@ Run using `node .`.
 
 ## To-Do
 
-### Rename to `node-cdp-ws` and use for talking to CDP WSs
-
-Adapt the API to accept just the PID and return a CDP interface from it.
+### Provide and API for talking to CDP WSs based on a PID
