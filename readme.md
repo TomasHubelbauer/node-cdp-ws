@@ -1,21 +1,6 @@
 # Node WebSocket Client
 
-Pure Node web socket client.
+Pure Node web socket client talking to CDP (Chrome DevTools Protocol) web socket
+obtained by attaching to own process at runtime.
 
 Run using `node .`.
-
-## To-Do
-
-### Adapt to be able to talk to the CDP
-
-https://chromedevtools.github.io/devtools-protocol/#endpoints
-
-See if I need these headers or I can do without them:
-
-```js
-{
-  // https://en.wikipedia.org/wiki/WebSocket#Protocol_handshake
-  'Sec-WebSocket-Key': '…',
-  'Sec-WebSocket-Version': 13,
-}
-```
