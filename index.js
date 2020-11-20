@@ -8,8 +8,8 @@ void async function () {
     headers: {
       Connection: 'Upgrade',
       Upgrade: 'websocket',
-      Host: 'echo.websocket.org:80',
-      Origin: 'http://echo.websocket.org:80',
+      Host: 'echo.websocket.org',
+      Origin: 'http://echo.websocket.org',
     },
   };
 
