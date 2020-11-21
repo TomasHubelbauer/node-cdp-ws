@@ -45,5 +45,64 @@ Electron binary and work against it rather than own process.
 
 - [ ] Use `node-win-pid` and pass `electron` instead of the PID and look it up
 
-See if the `electron-self-require` repository could be used to obtain some hint
-on how to access the VS Code API in the dev tools and then from CDP.
+I looked through `electron-self-require` repository and it shows this snippet:
+
+```js
+const electron = process.mainModule.require('electron')
+const fs = process.mainModule.require('fs')
+const webContents = electron.webContents.getAllWebContents()[0] // [1] is the shared process
+webContents.capturePage(image => fs.writeFileSync('screenshot.png', image.toPNG()))
+// Look in `process.cwd()`
+```
+
+I used `node-win-pid` and in it `node test code.exe` to find the PID of the main
+VS Code window. I then used `process._debugProcess` to put it in debug mode and
+used `chrome://inspect` to open dev tools for it.
+
+The dev tools instance for this main process PID shows one JS context:
+*Electron Main Context*.
+
+I ran `process.mainModule` in it and checked the paths and the child modules.
+I didn't see anything relating to the API or the extensions.
+
+Next up I opened `C:\Users\…\AppData\Local\Programs\Microsoft VS Code\` in Code
+and searched for various API method names. I know that the main process module
+path is in `resources\app\out` so I limited my search to there for now.
+
+I was able to identity these files as potential interests:
+
+- vs\workbench\services\extensions\node\extensionHostProcess.js
+- vs\workbench\services\extensions\worker\extensionHostWorker.js
+
+I am not sure how to get to these modules from the main process I have debug
+access to. The snipped there looks useless as I'm pretty sure the access to the
+API is not from the render process but from the main process in some way.
+
+I tried running `process.mainModule.require('vscode')` to no luck in the main
+process. I also tried `process.mainModule.children[${index}].require('vscode')`
+for all the child modules of the main module, again, to no luck.
+
+```js
+process.mainModule.require('./vs/workbench/services/extensions/node/extensionHostProcess.js')
+```
+
+This failed in a new way: *`define` is not defined*, not *Cannot find module*.
+
+The next step should be to attach to all `code.exe` PIDs, not just the main one,
+and seeing if one of those processes has a path `extensionHostProcess.js` or has
+such path in its `children` modules. Use either of:
+
+- `tasklist /FI "ImageName eq Code.exe"`
+- `wmic process get processid,executablepath|findstr Code.exe`
+
+Let's attach one by one, killing VS Code between each session otherwise the old
+session will not let the new session take over. For each of the PIDs, do:
+
+- Run `node -e "process._debugProcess(…)"`
+- Refresh `chrome://inspect` until it shows
+- Evaluate `process.mainModule.filename` in the dev tools and note it
+- Evaluate `require('inspector').close()` to stop the debugger attachment
+
+The paths found:
+
+- [ ] Fill in the paths found and see if any is `extensionHost` or similar
