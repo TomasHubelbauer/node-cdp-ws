@@ -1,7 +1,7 @@
 import cdp from './index.js';
 
 void async function () {
-  const send = await cdp(process.pid, console.log);
+  const send = await cdp(process.argv[2] ? Number(process.argv[2]) : process.pid, console.log);
 
   let id = 0;
   setInterval(() => {

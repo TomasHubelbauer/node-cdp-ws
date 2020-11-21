@@ -24,6 +24,8 @@ send({ id: 1, method: 'Runtime.evaluate', params: { expression: 'new Date().toLo
 
 Run using `node test`.
 
+Use `chrome://inspect` in Chrome/Edge to be able to use dev tools to debug.
+
 ### To-Do
 
 #### Test out with CDP methods which return large results, like Electron screenshot
@@ -32,4 +34,16 @@ https://github.com/TomasHubelbauer/electron-inspect-require
 
 https://github.com/TomasHubelbauer/electron-self-screenshot
 
-Add an `example` directory and keep the Electron screenshot example there.
+The `electron` example in `example` is WIP. To test with it, install Electron
+globally using `npm i -g electron` and go to the `example/electron` directory
+and run `electron .` or skip installing Electron globally and use the command
+`npx electron .` instead of `electron .`.
+
+The Electron application will print its PID. Split the terminal and run
+`node test ${pid}` providing the printed PID. This will attach a debugger to the
+Electron binary and work against it rather than own process.
+
+- [ ] Use `node-win-pid` and pass `electron` instead of the PID and look it up
+
+See if the `electron-self-require` repository could be used to obtain some hint
+on how to access the VS Code API in the dev tools and then from CDP.
