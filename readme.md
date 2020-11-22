@@ -95,14 +95,78 @@ such path in its `children` modules. Use either of:
 - `tasklist /FI "ImageName eq Code.exe"`
 - `wmic process get processid,executablepath|findstr Code.exe`
 
-Let's attach one by one, killing VS Code between each session otherwise the old
-session will not let the new session take over. For each of the PIDs, do:
+It always seems to return the processes in the same order (main, some 3/4 ones
+which are not possible to attach to), then more processes. This is good, because
+since we start the debugging externally, we cannot  close it. Normally closing
+it would be done using `require('inspector').close()` but that has to be done in
+the process and when doing it using the devtools at `chrome://inspect`, it does
+nothing. So, we are forced to restart VS Code after each process resetting all
+the PIDs, so the stable order of the processes means we do not have to try and
+distinguish which processes we already checked or not. We just go one by one:
 
-- Run `node -e "process._debugProcess(…)"`
-- Refresh `chrome://inspect` until it shows
+- Run `node -e "process._debugProcess(…)"` with the PID at the current index
+- Check http://localhost:9229/json and verify the PID matches there
+- Refresh `chrome://inspect` until it shows and verify the PID matches there
 - Evaluate `process.mainModule.filename` in the dev tools and note it
-- Evaluate `require('inspector').close()` to stop the debugger attachment
 
-The paths found:
+The processes tried and paths found:
 
-- [ ] Fill in the paths found and see if any is `extensionHost` or similar
+1. `resources\app\out\main.js`
+2. unattachable
+3. unattachable
+4. unattachable
+5. unattachable
+6. undiscoverable
+7. `resources\app\out\bootstrap-fork.js`
+8. unattachable
+9. `resources\app\extensions\json-language-features\server\dist\node\jsonServerMain.js`
+
+*unattachable* means `process._debugProcess` throws *The system cannot find the file specified.*.
+
+*undiscoverable* means `process._debugProcess` seemingly succeeds, but
+`chome://inspect` lists nothing and http://localhost:9229 is unreachable. I have
+later found this is actually the extension host process. Read on…
+
+The test - kill Code - advance to the next index, repeat cycle has been repeated
+twice to really make sure the order of the processes is always the same and it
+is.
+
+This leaves us with two processes we can control only: `main.js` and
+`jsonServerMain.js`. Nothing like `extensionHostProcess.js` or anything. I guess
+that means we have to find our way to the extension host process from the main
+process somehow.
+
+It is also possible that the undiscoverable process is what we need and it just
+listens on a different port, but I find it unlikely and have not tested it.
+
+It is interesting that in the main module, these commands behave differently:
+
+`require('./vs/workbench/services/extensions/node/extensionHostProcess.js')`
+
+Print *Cannot find module './vs/workbench/services/extensions/node/extensionHostProcess.js'*
+
+`process.mainModule.require('./vs/workbench/services/extensions/node/extensionHostProcess.js')`
+
+Prints *define is not defined*
+
+I have used VS Code > Help > Process Explorer to determine the extension host
+process is the one which accepts `console._debugProcess` but will not listen on
+http://localhost:9229 or show up in chrome://inspect.
+
+Also the dev tools that open in VS Code > Help > Toggle Develop Tools are for
+the Electron renderer process, #3 in the PID list, unattachable.
+
+I found something I thought might have been preventing the extension host from
+being debuggable, as per https://github.com/microsoft/vscode/issues/85490 and
+the commits referenced therein:
+
+```js
+,function(){for(let e=0;e<process.execArgv.length;e++)"--inspect-port=0"===process.execArgv[e]&&(process.execArgv.splice(e,1),e--)}()
+```
+
+Removing it did not help make the extension host debuggable.
+
+I also found an interesting tooltip when hovering out the extension host in the
+Process Explorer window:
+
+![](ext-host.png)
