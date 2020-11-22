@@ -170,3 +170,13 @@ I also found an interesting tooltip when hovering out the extension host in the
 Process Explorer window:
 
 ![](ext-host.png)
+
+This is looking kinda janky, perhaps rather than hoping to obtain the interface
+object for the VS Code by attaching to the main VS Code process and navigating
+our way to it, it might be easier to start VS Code with a CLI argument telling
+it to also load a wrapper extension (look into making single-file extensions)
+which would bootstrap the CDP WS logic, run the scenario VS Code API commands,
+recognize the scenarion finishing and then would use VS Code CDP WS to capture a
+screenshot and save it.
+
+This circles back to https://github.com/TomasHubelbauer/code-extension-screencast
