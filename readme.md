@@ -180,3 +180,11 @@ recognize the scenarion finishing and then would use VS Code CDP WS to capture a
 screenshot and save it.
 
 This circles back to https://github.com/TomasHubelbauer/code-extension-screencast
+
+Use https://github.com/TomasHubelbauer/vscode-barebones-extension to decouple
+the screenshot taking from test running. This way in one step, `npm test` is run
+as usual, and in another, `code --extensions-dir` is invoked this way, pointing
+to a directory with an extension which uses the VS Code API to carry out a demo
+of whatever the user wants to demo, including the extension should they choose
+to show it (by making sure the extension is also in the directory used for the
+`--extensions-dir` CLI argument).
