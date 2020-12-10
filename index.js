@@ -1,28 +1,47 @@
 import http from 'http';
 import assert from 'assert';
 
-export default async function (/** @type {number} */ pid, /** @type {function} */ receive, /** @type {number} */ port = 9229) {
-  // Start debugging the process
-  process._debugProcess(pid);
+export default async function (/** @type {number | string} */ pidOrUrl, /** @type {function} */ receive, /** @type {number} */ _port = 9229) {
+  /** @type {URL} */
+  let url;
 
-  // Download the debugger connection information
-  const chunks = [];
-  for await (const chunk of await new Promise(resolve => http.get(`http://localhost:${port}/json`, resolve))) {
-    chunks.push(chunk);
+  if (typeof pidOrUrl === 'number') {
+    const pid = pidOrUrl;
+    const port = _port;
+
+    // Start debugging the process
+    process._debugProcess(pid);
+
+    // Download the debugger connection information
+    const chunks = [];
+    for await (const chunk of await new Promise(resolve => http.get(`http://localhost:${port}/json`, resolve))) {
+      chunks.push(chunk);
+    }
+
+    // TODO: Consider throwing if there isn't only the sole right item in the array
+    // Parse the debugger configuration information JSON and verify its structure
+    const data = await JSON.parse(Buffer.concat(chunks));
+    const datum = data?.find(datum => datum.webSocketDebuggerUrl.startsWith('ws://localhost:' + port));
+    if (datum?.type !== 'node') {
+      throw new Error(`Unexpected response of http://localhost:${port}/json: ${JSON.stringify(datum || data)}`);
+    }
+
+    url = new URL(datum.webSocketDebuggerUrl);
+  }
+  else if (typeof pidOrUrl === 'string') {
+    url = new URL(pidOrUrl);
+  }
+  else {
+    throw new Error('Either a PID or a URL must be passed in as an argument.');
   }
 
-  // TODO: Consider throwing if there isn't only the sole right item in the array
-  // Parse the debugger configuration information JSON and verify its structure
-  const data = await JSON.parse(Buffer.concat(chunks));
-  const datum = data?.find(datum => datum.webSocketDebuggerUrl.startsWith('ws://localhost:' + port));
-  if (datum?.type !== 'node') {
-    throw new Error(`Unexpected response of http://localhost:${port}/json: ${JSON.stringify(datum || data)}`);
-  }
+  const { hostname: host, port, pathname: path } = url;
 
+  /** @type {http.RequestOptions} */
   const options = {
-    host: 'localhost',
+    host,
     port,
-    path: '/' + datum.id,
+    path,
     headers: {
       Connection: 'Upgrade',
       Upgrade: 'websocket',

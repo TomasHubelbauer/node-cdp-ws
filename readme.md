@@ -9,6 +9,19 @@ obtained by attaching to a process by its PID.
 
 ## Usage
 
+### `(url: string, receive: function)`
+
+```js
+import cdp from './node-cdp-ws/index.js';
+
+const send = await cdp('ws://localhost:9229/${guid}', console.log);
+
+// https://chromedevtools.github.io/devtools-protocol/tot/Runtime/#method-evaluate
+send({ id: 1, method: 'Runtime.evaluate', params: { expression: 'new Date().toLocaleTimeString()' } });
+```
+
+### `(pid: number, receive: function, port?: number = 9229)`
+
 ```js
 import cdp from './node-cdp-ws/index.js';
 
@@ -17,8 +30,6 @@ const send = await cdp(process.pid, console.log);
 // https://chromedevtools.github.io/devtools-protocol/tot/Runtime/#method-evaluate
 send({ id: 1, method: 'Runtime.evaluate', params: { expression: 'new Date().toLocaleTimeString()' } });
 ```
-
-`cdp` also accepts an optional 3rd argument `port` which defaults to `9229`.
 
 ## Development
 
